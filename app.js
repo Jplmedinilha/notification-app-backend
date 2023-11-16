@@ -38,22 +38,12 @@ admin.initializeApp({
           return;
         }
   
-        // if (item.qty < 100) {
-        //   // Verifica se o item está presente no array itensSent e remove-o
-        //   const index = itensSent.indexOf(item.nome);
-        //   if (index !== -1) {
-        //     itensSent.splice(index, 1);
-        //   }
-        //   return;
-        // }
-  
-        // Envia a notificação para o item
         sendNotification(item);
-        // Adiciona o item ao array itensSent para evitar envios repetidos
-        itensSent.push(item.nome);
+        
+        itensSent.push(item.nome); //adiciona no array itensSent pra evitar duplicados
       });
   
-      // Verifica se algum item no array itensSent teve sua quantidade diminuída e remove-o
+      // Verifica se algum item no array itensSent teve sua quantidade diminuída e remove
       itensSent.forEach((itemName) => {
         const item = results.find((row) => row.nome === itemName);
         if (item && item.qty < 100) {
@@ -66,11 +56,10 @@ admin.initializeApp({
     });
   }
   
-  // Função para enviar uma notificação para um item
   function sendNotification(item) {
     const message = {
       notification: {
-        title: 'Título da Notificação',
+        title: 'Notificação',
         body: `O item ${item.nome} está disponível novamente.`,
       },
     };
@@ -84,13 +73,11 @@ admin.initializeApp({
       });
   }
   
-  // Loop de verificação a cada 3 segundos
   function startLoop() {
     performCheck();
     setTimeout(startLoop, process.env.CYCLE_TIME); // Executa a função novamente após 3 segundos
   }
   
-  // Conexão com o banco de dados MySQL
   connection.connect((err) => {
     if (err) {
       console.error('Erro ao conectar ao banco de dados MySQL:', err);
@@ -99,6 +86,5 @@ admin.initializeApp({
   
     console.log('Conexão estabelecida com sucesso.');
   
-    // Inicia o loop de verificação
     startLoop();
   });
