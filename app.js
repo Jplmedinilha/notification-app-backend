@@ -14,9 +14,7 @@ const serviceAccount = require(process.env.FB_SETTINGS);
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-  
-  const tokens = process.env.FB_TOKENS.split(';');
-  
+    
   const itensSent = []; //itens que foram notificados serão inseridos aqui para evitar notificações duplicadas
   
   const connection = mysql.createConnection(dbConfig);
@@ -28,19 +26,16 @@ admin.initializeApp({
       if (err) {
         console.error('Erro ao executar a consulta:', err);
         return;
-      }
-        //console.log(results);
-  
+      }  
       const filteredResults = results.filter((row) => row.qty > 100);
   
       filteredResults.forEach((item) => {
-        if (itensSent.includes(item.nome)) { //verifica o array de itens enviados
+        if (itensSent.includes(item.nome)) {
           return;
         }
   
-        sendNotification(item);
-        
-        itensSent.push(item.nome); //adiciona no array itensSent pra evitar duplicados
+        sendNotification(item);        
+        itensSent.push(item.nome); 
       });
   
       // Verifica se algum item no array itensSent teve sua quantidade diminuída e remove
@@ -55,27 +50,49 @@ admin.initializeApp({
       });
     });
   }
+
+  function getTokens() {
+    const query = 'SELECT token FROM tokens;';
+    return new Promise((resolve, reject) => {
+      connection.query(query, (err, results) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+  
+        // Extrai os tokens dos resultados e cria um array com eles
+        const tokens = results.map((row) => row.token);
+  
+        resolve(tokens);
+      });
+    });
+  }
   
   function sendNotification(item) {
-    const message = {
-      notification: {
-        title: 'Notificação',
-        body: `O item ${item.nome} está disponível novamente.`,
-      },
-    };
-  
-    admin.messaging().sendMulticast({ tokens: tokens, notification: message.notification })
-      .then((response) => {
-        console.log('Notificações enviadas com sucesso:', response);
-      })
-      .catch((error) => {
-        console.error('Erro ao enviar as notificações:', error);
-      });
+    getTokens()
+    .then((tokens) => {
+        const message = {
+            notification: {
+              title: 'Notificação',
+              body: `O item ${item.nome} está disponível novamente.`,
+            },
+          };      
+          admin.messaging().sendMulticast({ tokens: tokens, notification: message.notification })
+            .then((response) => {
+              console.log('Notificações enviadas com sucesso:', response);
+            })
+            .catch((error) => {
+              console.error('Erro ao enviar as notificações:', error);
+            });
+    })
+    .catch((error) => {
+        console.error('Erro ao obter os tokens:', error);
+    });
   }
   
   function startLoop() {
     performCheck();
-    setTimeout(startLoop, process.env.CYCLE_TIME); // Executa a função novamente após 3 segundos
+    setTimeout(startLoop, process.env.CYCLE_TIME);
   }
   
   connection.connect((err) => {
